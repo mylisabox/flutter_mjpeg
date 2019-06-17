@@ -37,22 +37,26 @@ class Mjpeg extends HookWidget {
     }, [manager]);
 
     if (errorState.value != null) {
-      return error == null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  '${errorState.value}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.red),
+      return Container(
+        width: width,
+        height: height,
+        child: error == null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    '${errorState.value}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
-              ),
-            )
-          : error(context, errorState.value);
+              )
+            : error(context, errorState.value),
+      );
     }
 
     if (image.value == null) {
-      return loading == null ? Center(child: CircularProgressIndicator()) : loading(context);
+      return Container(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading(context));
     }
 
     return Image(

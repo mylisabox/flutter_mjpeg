@@ -1,6 +1,6 @@
 name: flutter_mjpeg
 description: Flutter widget to show mjpeg stream from URL
-version: 1.0.0
+version: 1.0.1
 author: jaumard <jimmy.aumard@gmail.com>
 homepage: https://github.com/mylisabox/flutter_mjpeg
 

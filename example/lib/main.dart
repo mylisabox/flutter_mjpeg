@@ -31,7 +31,9 @@ class MyHomePage extends HookWidget {
             child: Center(
               child: isRunning.value
                   ? Mjpeg(
-                      stream: 'http://192.168.1.24:8080/video.cgi',
+                      width: 200,
+                      height: 200,
+                      stream: 'http://192.168.1.37:8081',
                     )
                   : Container(),
             ),
