@@ -29,13 +29,10 @@ class MyHomePage extends HookWidget {
         children: <Widget>[
           Expanded(
             child: Center(
-              child: isRunning.value
-                  ? Mjpeg(
-                      width: 200,
-                      height: 200,
-                      stream: 'http://192.168.1.37:8081',
-                    )
-                  : Container(),
+              child: Mjpeg(
+                isLive: isRunning.value,
+                stream: 'http://64.74.184.131:8080/mjpg/video.mjpg?timestamp=1560785721651', //'http://192.168.1.37:8081',
+              ),
             ),
           ),
           RaisedButton(

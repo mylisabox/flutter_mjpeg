@@ -12,10 +12,12 @@ class Mjpeg extends HookWidget {
   final BoxFit fit;
   final double width;
   final double height;
+  final bool isLive;
   final WidgetBuilder loading;
   final Widget Function(BuildContext contet, dynamic error) error;
 
   Mjpeg({
+    this.isLive = false,
     this.width,
     this.height,
     this.fit,
@@ -29,7 +31,7 @@ class Mjpeg extends HookWidget {
   Widget build(BuildContext context) {
     final image = useState<MemoryImage>(null);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(() => _StreamManager(stream), [stream]);
+    final manager = useMemoized(() => _StreamManager(stream, isLive), [stream, isLive]);
 
     useEffect(() {
       manager.updateStream(context, image, errorState);
@@ -74,9 +76,10 @@ class _StreamManager {
   static const _eoi = 0xD9;
 
   final String stream;
+  final bool isLive;
   StreamSubscription _subscription;
 
-  _StreamManager(this.stream);
+  _StreamManager(this.stream, this.isLive);
 
   Future<void> dispose() {
     if (_subscription != null) {
@@ -86,6 +89,8 @@ class _StreamManager {
   }
 
   void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
+    if (stream == null) return;
+
     try {
       final request = await HttpClient().getUrl(Uri.parse(stream));
       final HttpClientResponse chunk = await request.close();
@@ -107,6 +112,9 @@ class _StreamManager {
             errorState.value = null;
             image.value = imageMemory;
             chunks = <int>[];
+            if (!isLive) {
+              _subscription.cancel();
+            }
           } else {
             chunks.addAll(data);
           }
