@@ -1,3 +1,7 @@
+## [1.1.1] - 10/07/2019
+
+* update flutter_hook to be compatible with last stable
+
 ## [1.1.0] - 18/06/2019
 
 * add a play/pause state
