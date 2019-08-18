@@ -98,7 +98,7 @@ class _StreamManager {
       _subscription = chunk.listen((data) async {
         if (chunks.isEmpty) {
           final startIndex = data.indexOf(_trigger);
-          if (startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
+          if (startIndex >= 0 && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
             final slicedData = data.sublist(startIndex, data.length);
             chunks.addAll(slicedData);
           }
