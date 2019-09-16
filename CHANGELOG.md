@@ -1,3 +1,7 @@
+## [1.2.0] - 16/09/2019
+
+* add compatibility with flutter web by using http package
+
 ## [1.1.1] - 10/07/2019
 
 * update flutter_hook to be compatible with last stable

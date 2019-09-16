@@ -17,7 +17,6 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
-  flutter_hooks: ^0.5.0
   flutter_mjpeg:
     path: '..'
   flutter:
