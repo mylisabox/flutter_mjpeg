@@ -14,6 +14,7 @@ class Mjpeg extends HookWidget {
   final bool isLive;
   final WidgetBuilder loading;
   final Widget Function(BuildContext contet, dynamic error) error;
+  final Map<String, String> headers;
 
   Mjpeg({
     this.isLive = false,
@@ -23,6 +24,7 @@ class Mjpeg extends HookWidget {
     this.stream,
     this.error,
     this.loading,
+    this.headers: {},
     Key key,
   }) : super(key: key);
 
@@ -91,7 +93,7 @@ class _StreamManager {
     if (stream == null) return;
 
     try {
-      final response = await Client().send(Request("GET", Uri.parse(stream)));
+      final response = await Client().get(Uri.parse(stream), this.headers);
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
         if (chunks.isEmpty) {
