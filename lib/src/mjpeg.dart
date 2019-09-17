@@ -93,7 +93,7 @@ class _StreamManager {
     if (stream == null) return;
 
     try {
-      final response = await Client().get(Uri.parse(stream), this.headers);
+      final response = await Client().get(Uri.parse(stream), headers: this.headers);
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
         if (chunks.isEmpty) {
