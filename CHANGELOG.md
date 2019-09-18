@@ -1,3 +1,7 @@
+## [1.2.1] - 18/09/2019
+
+* add possibility to pass headers to the stream request
+
 ## [1.2.0] - 16/09/2019
 
 * add compatibility with flutter web by using http package
