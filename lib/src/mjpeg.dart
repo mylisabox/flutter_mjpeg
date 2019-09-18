@@ -14,6 +14,7 @@ class Mjpeg extends HookWidget {
   final bool isLive;
   final WidgetBuilder loading;
   final Widget Function(BuildContext contet, dynamic error) error;
+  final Map<String, String> headers;
 
   Mjpeg({
     this.isLive = false,
@@ -23,6 +24,7 @@ class Mjpeg extends HookWidget {
     this.stream,
     this.error,
     this.loading,
+    this.headers,
     Key key,
   }) : super(key: key);
 
@@ -30,7 +32,7 @@ class Mjpeg extends HookWidget {
   Widget build(BuildContext context) {
     final image = useState<MemoryImage>(null);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(() => _StreamManager(stream, isLive), [stream, isLive]);
+    final manager = useMemoized(() => _StreamManager(stream, isLive, headers), [stream, isLive]);
 
     useEffect(() {
       manager.updateStream(context, image, errorState);
@@ -76,9 +78,10 @@ class _StreamManager {
 
   final String stream;
   final bool isLive;
+  final Map<String, String> headers;
   StreamSubscription _subscription;
 
-  _StreamManager(this.stream, this.isLive);
+  _StreamManager(this.stream, this.isLive, this.headers);
 
   Future<void> dispose() {
     if (_subscription != null) {
@@ -91,7 +94,9 @@ class _StreamManager {
     if (stream == null) return;
 
     try {
-      final response = await Client().send(Request("GET", Uri.parse(stream)));
+      final request = Request("GET", Uri.parse(stream));
+      request.headers.addAll(headers ?? Map<String, String>());
+      final response = await Client().send(request);
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
         if (chunks.isEmpty) {
