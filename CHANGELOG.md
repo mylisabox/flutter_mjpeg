@@ -1,3 +1,7 @@
+## [1.2.2] - 20/09/2019
+
+* fix some errors happening in some mjpeg stream 
+
 ## [1.2.1] - 18/09/2019
 
 * add possibility to pass headers to the stream request
