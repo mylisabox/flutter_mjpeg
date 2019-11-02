@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_widgets/flutter_widgets.dart';
 import 'package:http/http.dart';
 
 /// A Mjpeg.
@@ -31,8 +32,10 @@ class Mjpeg extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final image = useState<MemoryImage>(null);
+    final visible = useState<bool>(true);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(() => _StreamManager(stream, isLive, headers), [stream, isLive]);
+    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.value, headers), [stream, isLive, visible.value]);
+    final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
       manager.updateStream(context, image, errorState);
@@ -62,11 +65,17 @@ class Mjpeg extends HookWidget {
       return Container(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading(context));
     }
 
-    return Image(
-      image: image.value,
-      width: width,
-      height: height,
-      fit: fit,
+    return VisibilityDetector(
+      key: key,
+      child: Image(
+        image: image.value,
+        width: width,
+        height: height,
+        fit: fit,
+      ),
+      onVisibilityChanged: (VisibilityInfo info) {
+        visible.value = info.visibleFraction != 0;
+      },
     );
   }
 }
@@ -84,24 +93,22 @@ class _StreamManager {
 
   _StreamManager(this.stream, this.isLive, this.headers);
 
-  Future<void> dispose() {
+  Future<void> dispose() async {
     _httpClient.close();
     if (_subscription != null) {
-      return _subscription.cancel();
+      await _subscription.cancel();
+      _subscription = null;
     }
-    return Future.value(null);
   }
 
   void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
     if (stream == null) return;
-
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers ?? Map<String, String>());
       final response = await _httpClient.send(request);
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
-        debugPrint('data mjpeg received');
         if (chunks.isEmpty) {
           final startIndex = data.indexOf(_trigger);
           if (startIndex >= 0 && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
@@ -119,8 +126,7 @@ class _StreamManager {
             image.value = imageMemory;
             chunks = <int>[];
             if (!isLive) {
-              _subscription.cancel();
-              _httpClient.close();
+              dispose();
             }
           } else {
             chunks.addAll(data);

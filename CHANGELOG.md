@@ -1,3 +1,7 @@
+## [1.2.4] - 02/10/2019
+
+* close http client when widget not on screen
+
 ## [1.2.3] - 02/10/2019
 
 * close http client when dispose 
