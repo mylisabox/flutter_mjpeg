@@ -35,11 +35,21 @@ class MyHomePage extends HookWidget {
               ),
             ),
           ),
-          RaisedButton(
-            onPressed: () {
-              isRunning.value = !isRunning.value;
-            },
-            child: Text('Toggle'),
+          Row(
+            children: <Widget>[
+              RaisedButton(
+                onPressed: () {
+                  isRunning.value = !isRunning.value;
+                },
+                child: Text('Toggle'),
+              ),
+              RaisedButton(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => Scaffold(appBar: AppBar(),)));
+                },
+                child: Text('Push new route'),
+              ),
+            ],
           ),
         ],
       ),

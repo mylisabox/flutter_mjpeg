@@ -47,14 +47,14 @@ packages:
       name: flutter_hooks
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.6.0"
+    version: "0.6.1"
   flutter_mjpeg:
     dependency: "direct main"
     description:
       path: ".."
       relative: true
     source: path
-    version: "1.1.1"
+    version: "1.2.3"
   flutter_test:
     dependency: "direct dev"
     description: flutter

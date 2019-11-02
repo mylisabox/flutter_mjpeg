@@ -1,3 +1,7 @@
+## [1.2.3] - 02/10/2019
+
+* close http client when dispose 
+
 ## [1.2.2] - 20/09/2019
 
 * fix some errors happening in some mjpeg stream 

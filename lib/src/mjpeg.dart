@@ -79,11 +79,13 @@ class _StreamManager {
   final String stream;
   final bool isLive;
   final Map<String, String> headers;
+  final Client _httpClient = Client();
   StreamSubscription _subscription;
 
   _StreamManager(this.stream, this.isLive, this.headers);
 
   Future<void> dispose() {
+    _httpClient.close();
     if (_subscription != null) {
       return _subscription.cancel();
     }
@@ -96,9 +98,10 @@ class _StreamManager {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers ?? Map<String, String>());
-      final response = await Client().send(request);
+      final response = await _httpClient.send(request);
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
+        debugPrint('data mjpeg received');
         if (chunks.isEmpty) {
           final startIndex = data.indexOf(_trigger);
           if (startIndex >= 0 && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
@@ -117,6 +120,7 @@ class _StreamManager {
             chunks = <int>[];
             if (!isLive) {
               _subscription.cancel();
+              _httpClient.close();
             }
           } else {
             chunks.addAll(data);
