@@ -34,7 +34,9 @@ class Mjpeg extends HookWidget {
     final image = useState<MemoryImage>(null);
     final visible = useState<bool>(true);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.value, headers), [stream, isLive, visible.value]);
+    final manager = useMemoized(
+        () => _StreamManager(stream, isLive && visible.value, headers),
+        [stream, isLive, visible.value]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -62,7 +64,12 @@ class Mjpeg extends HookWidget {
     }
 
     if (image.value == null) {
-      return Container(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading(context));
+      return Container(
+          width: width,
+          height: height,
+          child: loading == null
+              ? Center(child: CircularProgressIndicator())
+              : loading(context));
     }
 
     return VisibilityDetector(
@@ -101,7 +108,8 @@ class _StreamManager {
     }
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage> image,
+      ValueNotifier<dynamic> errorState) async {
     if (stream == null) return;
     try {
       final request = Request("GET", Uri.parse(stream));
@@ -111,7 +119,9 @@ class _StreamManager {
       _subscription = response.stream.listen((data) async {
         if (chunks.isEmpty) {
           final startIndex = data.indexOf(_trigger);
-          if (startIndex >= 0 && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
+          if (startIndex >= 0 &&
+              startIndex + 1 < data.length &&
+              data[startIndex + 1] == _soi) {
             final slicedData = data.sublist(startIndex, data.length);
             chunks.addAll(slicedData);
           }

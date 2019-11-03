@@ -31,7 +31,8 @@ class MyHomePage extends HookWidget {
             child: Center(
               child: Mjpeg(
                 isLive: isRunning.value,
-                stream: 'http://64.74.184.131:8080/mjpg/video.mjpg?timestamp=1560785721651', //'http://192.168.1.37:8081',
+                stream:
+                    'http://64.74.184.131:8080/mjpg/video.mjpg?timestamp=1560785721651', //'http://192.168.1.37:8081',
               ),
             ),
           ),
@@ -45,7 +46,10 @@ class MyHomePage extends HookWidget {
               ),
               RaisedButton(
                 onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => Scaffold(appBar: AppBar(),)));
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => Scaffold(
+                            appBar: AppBar(),
+                          )));
                 },
                 child: Text('Push new route'),
               ),
