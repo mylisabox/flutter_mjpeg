@@ -114,7 +114,7 @@ class _StreamManager {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers ?? Map<String, String>());
-      final response = await _httpClient.send(request);
+      final response = await _httpClient.send(request).timeout(Duration(seconds: 5));//timeout is to prevent process to hang forever in some case
       var chunks = <int>[];
       _subscription = response.stream.listen((data) async {
         if (chunks.isEmpty) {

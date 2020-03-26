@@ -1,3 +1,7 @@
+## [1.2.6] - 26/03/2020
+
+* add timeout on open connexion to prevent forever loading state
+
 ## [1.2.5] - 03/10/2019
 
 * improve pub scoring 
