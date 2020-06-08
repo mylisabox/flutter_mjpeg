@@ -6,6 +6,27 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_widgets/flutter_widgets.dart';
 import 'package:http/http.dart';
 
+class _MjpegStateNotifier extends ChangeNotifier {
+  bool _mounted = true;
+  bool _visible = true;
+
+  _MjpegStateNotifier() : super();
+
+  bool get mounted => _mounted;
+  bool get visible => _visible;
+  set visible(value) {
+    _visible = value;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    notifyListeners();
+    super.dispose();
+  }
+}
+
 /// A Mjpeg.
 class Mjpeg extends HookWidget {
   final String stream;
@@ -32,14 +53,16 @@ class Mjpeg extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final image = useState<MemoryImage>(null);
-    final visible = useState<bool>(true);
+    final state = useMemoized(() => _MjpegStateNotifier());
+    final visible = useListenable(state);
     final errorState = useState<dynamic>(null);
     final manager = useMemoized(
-        () => _StreamManager(stream, isLive && visible.value, headers),
-        [stream, isLive, visible.value]);
+        () => _StreamManager(stream, isLive && visible.visible, headers),
+        [stream, isLive, visible.visible]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
+      errorState.value = null;
       manager.updateStream(context, image, errorState);
       return manager.dispose;
     }, [manager]);
@@ -81,7 +104,9 @@ class Mjpeg extends HookWidget {
         fit: fit,
       ),
       onVisibilityChanged: (VisibilityInfo info) {
-        visible.value = info.visibleFraction != 0;
+        if (visible.mounted) {
+          visible.visible = info.visibleFraction != 0;
+        }
       },
     );
   }

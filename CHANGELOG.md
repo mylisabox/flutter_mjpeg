@@ -1,3 +1,7 @@
+## [1.2.7] - 08/06/2020
+
+* fix crash when widget was disposed.
+
 ## [1.2.6] - 26/03/2020
 
 * add timeout on open connexion to prevent forever loading state
