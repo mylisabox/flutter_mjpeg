@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -13,7 +14,9 @@ class _MjpegStateNotifier extends ChangeNotifier {
   _MjpegStateNotifier() : super();
 
   bool get mounted => _mounted;
+
   bool get visible => _visible;
+
   set visible(value) {
     _visible = value;
     notifyListeners();
@@ -57,11 +60,12 @@ class Mjpeg extends HookWidget {
     final visible = useListenable(state);
     final errorState = useState<dynamic>(null);
     final manager = useMemoized(
-        () => _StreamManager(stream, isLive && visible.visible, headers),
+            () => _StreamManager(stream, isLive && visible.visible, headers),
         [stream, isLive, visible.visible]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
+      print('reset error ${errorState.value}');
       errorState.value = null;
       manager.updateStream(context, image, errorState);
       return manager.dispose;
@@ -73,15 +77,15 @@ class Mjpeg extends HookWidget {
         height: height,
         child: error == null
             ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    '${errorState.value}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              )
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              '${errorState.value}',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        )
             : error(context, errorState.value),
       );
     }
@@ -126,11 +130,11 @@ class _StreamManager {
   _StreamManager(this.stream, this.isLive, this.headers);
 
   Future<void> dispose() async {
-    _httpClient.close();
     if (_subscription != null) {
       await _subscription.cancel();
       _subscription = null;
     }
+    _httpClient.close();
   }
 
   void updateStream(BuildContext context, ValueNotifier<MemoryImage> image,
@@ -139,35 +143,46 @@ class _StreamManager {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers ?? Map<String, String>());
-      final response = await _httpClient.send(request).timeout(Duration(seconds: 5));//timeout is to prevent process to hang forever in some case
-      var chunks = <int>[];
-      _subscription = response.stream.listen((data) async {
-        if (chunks.isEmpty) {
-          final startIndex = data.indexOf(_trigger);
-          if (startIndex >= 0 &&
-              startIndex + 1 < data.length &&
-              data[startIndex + 1] == _soi) {
-            final slicedData = data.sublist(startIndex, data.length);
-            chunks.addAll(slicedData);
-          }
-        } else {
-          final startIndex = data.lastIndexOf(_trigger);
-          if (startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
-            final slicedData = data.sublist(0, startIndex + 2);
-            chunks.addAll(slicedData);
-            final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-            await precacheImage(imageMemory, context);
-            errorState.value = null;
-            image.value = imageMemory;
-            chunks = <int>[];
-            if (!isLive) {
-              dispose();
+      final response = await _httpClient.send(request).timeout(Duration(seconds: 5)); //timeout is to prevent process to hang forever in some case
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        var chunks = <int>[];
+        _subscription = response.stream.listen((data) async {
+          if (chunks.isEmpty) {
+            final startIndex = data.indexOf(_trigger);
+            if (startIndex >= 0 &&
+                startIndex + 1 < data.length &&
+                data[startIndex + 1] == _soi) {
+              final slicedData = data.sublist(startIndex, data.length);
+              chunks.addAll(slicedData);
             }
           } else {
-            chunks.addAll(data);
+            final startIndex = data.lastIndexOf(_trigger);
+            if (startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
+              final slicedData = data.sublist(0, startIndex + 2);
+              chunks.addAll(slicedData);
+              final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+              await precacheImage(imageMemory, context);
+              errorState.value = null;
+              image.value = imageMemory;
+              chunks = <int>[];
+              if (!isLive) {
+                dispose();
+              }
+            } else {
+              chunks.addAll(data);
+            }
           }
-        }
-      });
+        }, onError: (err) {
+          errorState.value = err;
+          image.value = null;
+          dispose();
+        }, cancelOnError: true);
+      } else {
+        errorState.value = HttpException('Stream returned ${response.statusCode} status');
+        image.value = null;
+        dispose();
+      }
     } catch (error) {
       errorState.value = error;
       image.value = null;

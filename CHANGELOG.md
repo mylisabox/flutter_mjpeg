@@ -1,3 +1,7 @@
+## [1.2.8] - 29/06/2020
+
+* correctly handle http errors (other than >= 200 > 300)
+
 ## [1.2.7] - 08/06/2020
 
 * fix crash when widget was disposed.
