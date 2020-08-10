@@ -9,8 +9,8 @@ environment:
 
 dependencies:
   flutter_widgets: ^0.1.12
-  flutter_hooks: ^0.10.0
-  http: ^0.12.1
+  flutter_hooks: ">=0.10.0 <1.0.0"
+  http: ^0.12.2
   flutter:
     sdk: flutter
 

@@ -1,3 +1,7 @@
+## [1.2.9] - 10/08/2020
+
+* correct deps version
+
 ## [1.2.8] - 29/06/2020
 
 * correctly handle http errors (other than >= 200 > 300)
