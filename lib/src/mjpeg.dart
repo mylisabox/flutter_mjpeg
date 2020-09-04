@@ -162,9 +162,13 @@ class _StreamManager {
               final slicedData = data.sublist(0, startIndex + 2);
               chunks.addAll(slicedData);
               final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-              await precacheImage(imageMemory, context);
-              errorState.value = null;
-              image.value = imageMemory;
+              try {
+                await precacheImage(imageMemory, context);
+                errorState.value = null;
+                image.value = imageMemory;
+              } catch (err) {
+                print('update error: $err');
+              }
               chunks = <int>[];
               if (!isLive) {
                 dispose();
@@ -174,18 +178,30 @@ class _StreamManager {
             }
           }
         }, onError: (err) {
-          errorState.value = err;
-          image.value = null;
+          try {
+            errorState.value = err;
+            image.value = null;
+          } catch (err) {
+            print('update error: $err');
+          }
           dispose();
         }, cancelOnError: true);
       } else {
-        errorState.value = HttpException('Stream returned ${response.statusCode} status');
-        image.value = null;
+        try {
+          errorState.value = HttpException('Stream returned ${response.statusCode} status');
+          image.value = null;
+        } catch (err) {
+          print('update error: $err');
+        }
         dispose();
       }
     } catch (error) {
-      errorState.value = error;
-      image.value = null;
+      try {
+        errorState.value = error;
+        image.value = null;
+      } catch(err) {
+        print('update error: $err');
+      }
     }
   }
 }
