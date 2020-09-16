@@ -59,9 +59,7 @@ class Mjpeg extends HookWidget {
     final state = useMemoized(() => _MjpegStateNotifier());
     final visible = useListenable(state);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(
-            () => _StreamManager(stream, isLive && visible.visible, headers),
-        [stream, isLive, visible.visible]);
+    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.visible, headers), [stream, isLive, visible.visible]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -77,26 +75,21 @@ class Mjpeg extends HookWidget {
         height: height,
         child: error == null
             ? Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              '${errorState.value}',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        )
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    '${errorState.value}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              )
             : error(context, errorState.value),
       );
     }
 
     if (image.value == null) {
-      return Container(
-          width: width,
-          height: height,
-          child: loading == null
-              ? Center(child: CircularProgressIndicator())
-              : loading(context));
+      return Container(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading(context));
     }
 
     return VisibilityDetector(
@@ -137,8 +130,7 @@ class _StreamManager {
     _httpClient.close();
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage> image,
-      ValueNotifier<dynamic> errorState) async {
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
     if (stream == null) return;
     try {
       final request = Request("GET", Uri.parse(stream));
@@ -149,27 +141,32 @@ class _StreamManager {
         var chunks = <int>[];
         _subscription = response.stream.listen((data) async {
           if (chunks.isEmpty) {
-            final startIndex = data.indexOf(_trigger);
-            if (startIndex >= 0 &&
-                startIndex + 1 < data.length &&
-                data[startIndex + 1] == _soi) {
-              final slicedData = data.sublist(startIndex, data.length);
-              chunks.addAll(slicedData);
+            for (var startIndex = 0; startIndex < data.length; startIndex++) {
+              if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
+                final slicedData = data.sublist(startIndex, data.length);
+                chunks.addAll(slicedData);
+                break;
+              }
             }
           } else {
-            final startIndex = data.lastIndexOf(_trigger);
-            if (startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
-              final slicedData = data.sublist(0, startIndex + 2);
-              chunks.addAll(slicedData);
-              final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-              await precacheImage(imageMemory, context);
-              errorState.value = null;
-              image.value = imageMemory;
-              chunks = <int>[];
-              if (!isLive) {
-                dispose();
+            var eoiFound = false;
+            for (var startIndex = 0; startIndex < data.length; startIndex++) {
+              if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
+                eoiFound = true;
+                final slicedData = data.sublist(0, startIndex + 2);
+                chunks.addAll(slicedData);
+                final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+                await precacheImage(imageMemory, context);
+                errorState.value = null;
+                image.value = imageMemory;
+                chunks = <int>[];
+                if (!isLive) {
+                  dispose();
+                }
+                break;
               }
-            } else {
+            }
+            if (!eoiFound) {
               chunks.addAll(data);
             }
           }
