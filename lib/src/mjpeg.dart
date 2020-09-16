@@ -63,7 +63,6 @@ class Mjpeg extends HookWidget {
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
-      print('reset error ${errorState.value}');
       errorState.value = null;
       manager.updateStream(context, image, errorState);
       return manager.dispose;
@@ -156,9 +155,11 @@ class _StreamManager {
                 final slicedData = data.sublist(0, startIndex + 2);
                 chunks.addAll(slicedData);
                 final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-                await precacheImage(imageMemory, context);
-                errorState.value = null;
-                image.value = imageMemory;
+                try {
+                  await precacheImage(imageMemory, context);
+                  errorState.value = null;
+                  image.value = imageMemory;
+                } catch (ex) {}
                 chunks = <int>[];
                 if (!isLive) {
                   dispose();
@@ -171,8 +172,10 @@ class _StreamManager {
             }
           }
         }, onError: (err) {
-          errorState.value = err;
-          image.value = null;
+          try {
+            errorState.value = err;
+            image.value = null;
+          } catch (ex) {}
           dispose();
         }, cancelOnError: true);
       } else {
