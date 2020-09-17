@@ -129,6 +129,24 @@ class _StreamManager {
     _httpClient.close();
   }
 
+  int indexOfSoi(List<int> data, {int startAt = 0}) {
+    for (var startIndex = startAt; startIndex < data.length; startIndex++) {
+      if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
+        return startIndex;
+      }
+    }
+    return -1;
+  }
+
+  int indexOfEoi(List<int> data, {int startAt = 0}) {
+    for (var startIndex = startAt; startIndex < data.length; startIndex++) {
+      if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
+        return startIndex;
+      }
+    }
+    return -1;
+  }
+
   void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
     if (stream == null) return;
     try {
@@ -139,7 +157,72 @@ class _StreamManager {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         var chunks = <int>[];
         _subscription = response.stream.listen((data) async {
+          var sIndex = 0;
+
           if (chunks.isEmpty) {
+            sIndex = indexOfSoi(data);
+          }
+
+          var eIndex = 0;
+          if (sIndex == -1) {
+            eIndex = indexOfEoi(data);
+          } else {
+            eIndex = indexOfEoi(data, startAt: sIndex);
+          }
+
+          print('$sIndex $eIndex / ${data.length}');
+
+          if (sIndex == -1 && eIndex == -1) {
+            if (chunks.isNotEmpty) {
+              chunks.addAll(data);
+            }
+          } else if (sIndex == -1) {
+            final slicedData = data.sublist(0, eIndex + 2);
+            chunks.addAll(slicedData);
+            final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+            try {
+              await precacheImage(imageMemory, context);
+              errorState.value = null;
+              image.value = imageMemory;
+            } catch (ex) {}
+            chunks = <int>[];
+            if (!isLive) {
+              dispose();
+            }
+          } else if (eIndex == -1) {
+            final slicedData = data.sublist(sIndex, data.length);
+            chunks.addAll(slicedData);
+          } else {
+            final slicedData = data.sublist(sIndex, eIndex + 2);
+            chunks.addAll(slicedData);
+            final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+            try {
+              await precacheImage(imageMemory, context, onError: (err, trace) {
+                print('${chunks[0]} ${chunks[1]} ${chunks[chunks.length-2]} ${chunks[chunks.length-1]}');
+                print(err);
+              });
+              errorState.value = null;
+              image.value = imageMemory;
+            } catch (ex) {
+              print(ex);
+              print(chunks);
+            }
+            chunks = <int>[];
+            if (!isLive) {
+              dispose();
+            }
+          }
+
+          if (eIndex != -1) {
+            sIndex = indexOfSoi(data, startAt: eIndex);
+            if (sIndex != -1) {
+              eIndex = indexOfEoi(data, startAt: sIndex);
+              print('new start $sIndex $eIndex / ${data.length}');
+              final slicedData = data.sublist(sIndex, data.length);
+              chunks.addAll(slicedData);
+            }
+          }
+          /*if (chunks.isEmpty) {
             for (var startIndex = 0; startIndex < data.length; startIndex++) {
               if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
                 final slicedData = data.sublist(startIndex, data.length);
@@ -170,7 +253,7 @@ class _StreamManager {
             if (!eoiFound) {
               chunks.addAll(data);
             }
-          }
+          }*/
         }, onError: (err) {
           try {
             errorState.value = err;
