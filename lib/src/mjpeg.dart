@@ -155,105 +155,54 @@ class _StreamManager {
       final response = await _httpClient.send(request).timeout(Duration(seconds: 5)); //timeout is to prevent process to hang forever in some case
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        var chunks = <int>[];
-        _subscription = response.stream.listen((data) async {
-          var sIndex = 0;
-
-          if (chunks.isEmpty) {
-            sIndex = indexOfSoi(data);
-          }
-
-          var eIndex = 0;
-          if (sIndex == -1) {
-            eIndex = indexOfEoi(data);
-          } else {
-            eIndex = indexOfEoi(data, startAt: sIndex);
-          }
-
-          print('$sIndex $eIndex / ${data.length}');
-
-          if (sIndex == -1 && eIndex == -1) {
-            if (chunks.isNotEmpty) {
-              chunks.addAll(data);
-            }
-          } else if (sIndex == -1) {
-            final slicedData = data.sublist(0, eIndex + 2);
-            chunks.addAll(slicedData);
-            final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-            try {
-              await precacheImage(imageMemory, context);
-              errorState.value = null;
-              image.value = imageMemory;
-            } catch (ex) {}
-            chunks = <int>[];
-            if (!isLive) {
-              dispose();
-            }
-          } else if (eIndex == -1) {
-            final slicedData = data.sublist(sIndex, data.length);
-            chunks.addAll(slicedData);
-          } else {
-            final slicedData = data.sublist(sIndex, eIndex + 2);
-            chunks.addAll(slicedData);
-            final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-            try {
-              await precacheImage(imageMemory, context, onError: (err, trace) {
-                print('${chunks[0]} ${chunks[1]} ${chunks[chunks.length-2]} ${chunks[chunks.length-1]}');
-                print(err);
-              });
-              errorState.value = null;
-              image.value = imageMemory;
-            } catch (ex) {
-              print(ex);
-              print(chunks);
-            }
-            chunks = <int>[];
-            if (!isLive) {
-              dispose();
+        var _carry = <int>[];
+        _subscription = response.stream.listen((chunk) async {
+          if (_carry.isNotEmpty && _carry.last == _trigger) {
+            if (chunk.first == _eoi) {
+              _carry.add(chunk.first);
+              print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
+              final imageMemory = MemoryImage(Uint8List.fromList(_carry));
+              try {
+                await precacheImage(imageMemory, context, onError: (err, trace) {
+                  print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
+                  print(err);
+                });
+                errorState.value = null;
+                image.value = imageMemory;
+              } catch (ex) {}
+              _carry = [];
             }
           }
 
-          if (eIndex != -1) {
-            sIndex = indexOfSoi(data, startAt: eIndex);
-            if (sIndex != -1) {
-              eIndex = indexOfEoi(data, startAt: sIndex);
-              print('new start $sIndex $eIndex / ${data.length}');
-              final slicedData = data.sublist(sIndex, data.length);
-              chunks.addAll(slicedData);
-            }
-          }
-          /*if (chunks.isEmpty) {
-            for (var startIndex = 0; startIndex < data.length; startIndex++) {
-              if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
-                final slicedData = data.sublist(startIndex, data.length);
-                chunks.addAll(slicedData);
-                break;
+          for (var i = 0; i < chunk.length - 1; i++) {
+            final d = chunk[i];
+            final d1 = chunk[i + 1];
+
+            if (d == _trigger && d1 == _soi) {
+              _carry.add(d);
+            } else if (d == _trigger && d1 == _eoi && _carry.isNotEmpty) {
+              _carry.add(d);
+              _carry.add(d1);
+
+              final imageMemory = MemoryImage(Uint8List.fromList(_carry));
+              print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
+              try {
+                await precacheImage(imageMemory, context, onError: (err, trace) {
+                  print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
+                  print(err);
+                });
+                errorState.value = null;
+                image.value = imageMemory;
+              } catch (ex) {}
+
+              _carry = [];
+            } else if (_carry.isNotEmpty) {
+              _carry.add(d);
+              if (i == chunk.length - 2) {
+                _carry.add(d1);
               }
             }
-          } else {
-            var eoiFound = false;
-            for (var startIndex = 0; startIndex < data.length; startIndex++) {
-              if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
-                eoiFound = true;
-                final slicedData = data.sublist(0, startIndex + 2);
-                chunks.addAll(slicedData);
-                final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-                try {
-                  await precacheImage(imageMemory, context);
-                  errorState.value = null;
-                  image.value = imageMemory;
-                } catch (ex) {}
-                chunks = <int>[];
-                if (!isLive) {
-                  dispose();
-                }
-                break;
-              }
-            }
-            if (!eoiFound) {
-              chunks.addAll(data);
-            }
-          }*/
+          }
         }, onError: (err) {
           try {
             errorState.value = err;
@@ -267,6 +216,7 @@ class _StreamManager {
         dispose();
       }
     } catch (error) {
+      print(error); //fixme
       errorState.value = error;
       image.value = null;
     }
