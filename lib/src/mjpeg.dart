@@ -129,22 +129,16 @@ class _StreamManager {
     _httpClient.close();
   }
 
-  int indexOfSoi(List<int> data, {int startAt = 0}) {
-    for (var startIndex = startAt; startIndex < data.length; startIndex++) {
-      if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _soi) {
-        return startIndex;
-      }
-    }
-    return -1;
-  }
-
-  int indexOfEoi(List<int> data, {int startAt = 0}) {
-    for (var startIndex = startAt; startIndex < data.length; startIndex++) {
-      if (data[startIndex] == _trigger && startIndex + 1 < data.length && data[startIndex + 1] == _eoi) {
-        return startIndex;
-      }
-    }
-    return -1;
+  Future<void> _sendImage(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
+    final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+    try {
+      await precacheImage(imageMemory, context, onError: (err, trace) {
+        print('l=${chunks.length}: ${chunks[0]} ${chunks[1]} ${chunks[chunks.length - 2]} ${chunks[chunks.length - 1]}');
+        print(err);
+      });
+      errorState.value = null;
+      image.value = imageMemory;
+    } catch (ex) {}
   }
 
   void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
@@ -161,16 +155,11 @@ class _StreamManager {
             if (chunk.first == _eoi) {
               _carry.add(chunk.first);
               print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
-              final imageMemory = MemoryImage(Uint8List.fromList(_carry));
-              try {
-                await precacheImage(imageMemory, context, onError: (err, trace) {
-                  print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
-                  print(err);
-                });
-                errorState.value = null;
-                image.value = imageMemory;
-              } catch (ex) {}
+              await _sendImage(context, image, errorState, _carry);
               _carry = [];
+              if (!isLive) {
+                dispose();
+              }
             }
           }
 
@@ -184,18 +173,11 @@ class _StreamManager {
               _carry.add(d);
               _carry.add(d1);
 
-              final imageMemory = MemoryImage(Uint8List.fromList(_carry));
-              print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
-              try {
-                await precacheImage(imageMemory, context, onError: (err, trace) {
-                  print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
-                  print(err);
-                });
-                errorState.value = null;
-                image.value = imageMemory;
-              } catch (ex) {}
-
+              await _sendImage(context, image, errorState, _carry);
               _carry = [];
+              if (!isLive) {
+                dispose();
+              }
             } else if (_carry.isNotEmpty) {
               _carry.add(d);
               if (i == chunk.length - 2) {
