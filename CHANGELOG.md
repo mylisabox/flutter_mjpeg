@@ -1,3 +1,8 @@
+## [1.3.0] - 22/01/2021
+
+* improve framerate
+* update deps
+
 ## [1.2.9] - 10/08/2020
 
 * correct deps version
