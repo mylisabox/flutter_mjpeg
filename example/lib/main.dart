@@ -32,8 +32,7 @@ class MyHomePage extends HookWidget {
               child: Mjpeg(
                 isLive: isRunning.value,
                 stream:
-                'http://166.156.103.201:84/mjpg/video.mjpg',
-                //    'http://91.133.85.170:8090/cgi-bin/faststream.jpg?stream=half&fps=15&rand=COUNTER', //'http://192.168.1.37:8081',
+                'http://91.133.85.170:8090/cgi-bin/faststream.jpg?stream=half&fps=15&rand=COUNTER', //'http://192.168.1.37:8081',
               ),
             ),
           ),

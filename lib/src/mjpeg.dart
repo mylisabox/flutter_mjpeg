@@ -4,8 +4,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_widgets/flutter_widgets.dart';
 import 'package:http/http.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class _MjpegStateNotifier extends ChangeNotifier {
   bool _mounted = true;
@@ -33,33 +33,35 @@ class _MjpegStateNotifier extends ChangeNotifier {
 /// A Mjpeg.
 class Mjpeg extends HookWidget {
   final String stream;
-  final BoxFit fit;
-  final double width;
-  final double height;
+  final BoxFit? fit;
+  final double? width;
+  final double? height;
   final bool isLive;
-  final WidgetBuilder loading;
-  final Widget Function(BuildContext contet, dynamic error) error;
+  final Duration timeout;
+  final WidgetBuilder? loading;
+  final Widget Function(BuildContext contet, dynamic error)? error;
   final Map<String, String> headers;
 
-  Mjpeg({
+  const Mjpeg({
     this.isLive = false,
     this.width,
+    this.timeout = const Duration(seconds: 5),
     this.height,
     this.fit,
-    this.stream,
+    required this.stream,
     this.error,
     this.loading,
-    this.headers,
-    Key key,
+    this.headers = const {},
+    Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final image = useState<MemoryImage>(null);
+    final image = useState<MemoryImage?>(null);
     final state = useMemoized(() => _MjpegStateNotifier());
     final visible = useListenable(state);
     final errorState = useState<dynamic>(null);
-    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.visible, headers), [stream, isLive, visible.visible]);
+    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.visible, headers, timeout), [stream, isLive, visible.visible, timeout]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -69,7 +71,7 @@ class Mjpeg extends HookWidget {
     }, [manager]);
 
     if (errorState.value != null) {
-      return Container(
+      return SizedBox(
         width: width,
         height: height,
         child: error == null
@@ -83,18 +85,18 @@ class Mjpeg extends HookWidget {
                   ),
                 ),
               )
-            : error(context, errorState.value),
+            : error!(context, errorState.value),
       );
     }
 
     if (image.value == null) {
-      return Container(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading(context));
+      return SizedBox(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading!(context));
     }
 
     return VisibilityDetector(
       key: key,
       child: Image(
-        image: image.value,
+        image: image.value!,
         width: width,
         height: height,
         fit: fit,
@@ -115,25 +117,25 @@ class _StreamManager {
 
   final String stream;
   final bool isLive;
+  final Duration _timeout;
   final Map<String, String> headers;
   final Client _httpClient = Client();
-  StreamSubscription _subscription;
+  StreamSubscription? _subscription;
 
-  _StreamManager(this.stream, this.isLive, this.headers);
+  _StreamManager(this.stream, this.isLive, this.headers, this._timeout);
 
   Future<void> dispose() async {
     if (_subscription != null) {
-      await _subscription.cancel();
+      await _subscription!.cancel();
       _subscription = null;
     }
     _httpClient.close();
   }
 
-  Future<void> _sendImage(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
+  Future<void> _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
     final imageMemory = MemoryImage(Uint8List.fromList(chunks));
     try {
       await precacheImage(imageMemory, context, onError: (err, trace) {
-        print('l=${chunks.length}: ${chunks[0]} ${chunks[1]} ${chunks[chunks.length - 2]} ${chunks[chunks.length - 1]}');
         print(err);
       });
       errorState.value = null;
@@ -141,12 +143,11 @@ class _StreamManager {
     } catch (ex) {}
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage> image, ValueNotifier<dynamic> errorState) async {
-    if (stream == null) return;
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState) async {
     try {
       final request = Request("GET", Uri.parse(stream));
-      request.headers.addAll(headers ?? Map<String, String>());
-      final response = await _httpClient.send(request).timeout(Duration(seconds: 5)); //timeout is to prevent process to hang forever in some case
+      request.headers.addAll(headers);
+      final response = await _httpClient.send(request).timeout(_timeout); //timeout is to prevent process to hang forever in some case
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         var _carry = <int>[];
@@ -154,7 +155,6 @@ class _StreamManager {
           if (_carry.isNotEmpty && _carry.last == _trigger) {
             if (chunk.first == _eoi) {
               _carry.add(chunk.first);
-              print('l=${_carry.length}: ${_carry[0]} ${_carry[1]} ${_carry[_carry.length - 2]} ${_carry[_carry.length - 1]}');
               await _sendImage(context, image, errorState, _carry);
               _carry = [];
               if (!isLive) {
@@ -198,7 +198,6 @@ class _StreamManager {
         dispose();
       }
     } catch (error) {
-      print(error); //fixme
       errorState.value = error;
       image.value = null;
     }

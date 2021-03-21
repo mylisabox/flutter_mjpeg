@@ -35,7 +35,7 @@ class JpegSplitter extends StreamTransformerBase<List<int>, List<int>> {
   const JpegSplitter();
 
   ChunkedConversionSink<List<int>> startChunkedConversion(Sink<List<int>> sink) {
-    return _JpegSplitterSink(sink);
+    return _JpegSplitterSink(sink as ChunkedConversionSink<List<int>?>);
   }
 
   Stream<List<int>> bind(Stream<List<int>> stream) {
@@ -46,13 +46,13 @@ class JpegSplitter extends StreamTransformerBase<List<int>, List<int>> {
 }
 
 class _JpegSplitterSink extends ChunkedConversionSink<List<int>> {
-  final ChunkedConversionSink<List<int>> _sink;
+  final ChunkedConversionSink<List<int>?> _sink;
 
   /// The carry-over from the previous chunk.
   ///
   /// If the previous slice ended in a line without a line terminator,
   /// then the next slice may continue the line.
-  List<int> _carry = [];
+  List<int>? _carry = [];
 
   _JpegSplitterSink(this._sink);
 
@@ -67,9 +67,9 @@ class _JpegSplitterSink extends ChunkedConversionSink<List<int>> {
 
   @override
   void add(List<int> chunk) {
-    if (_carry.isNotEmpty && _carry.last == _trigger) {
+    if (_carry!.isNotEmpty && _carry!.last == _trigger) {
       if (chunk.first == _eoi) {
-        _carry.add(chunk.first);
+        _carry!.add(chunk.first);
         _sink.add(_carry);
         _carry = [];
       }
@@ -80,16 +80,16 @@ class _JpegSplitterSink extends ChunkedConversionSink<List<int>> {
       final d1 = chunk[i + 1];
 
       if (d == _trigger && d1 == _soi) {
-        _carry.add(d);
+        _carry!.add(d);
       } else if (d == _trigger && d1 == _eoi) {
-        _carry.add(d);
-        _carry.add(d1);
+        _carry!.add(d);
+        _carry!.add(d1);
         _sink.add(_carry);
         _carry = [];
-      } else if (_carry.isNotEmpty) {
-        _carry.add(d);
+      } else if (_carry!.isNotEmpty) {
+        _carry!.add(d);
         if (i == chunk.length - 2) {
-          _carry.add(d1);
+          _carry!.add(d1);
         }
       }
     }
@@ -105,7 +105,7 @@ class _JpegSplitterEventSink extends _JpegSplitterSink implements EventSink<List
           print('accumulated');
         }));
 
-  void addError(Object o, [StackTrace stackTrace]) {
+  void addError(Object o, [StackTrace? stackTrace]) {
     _eventSink.addError(o, stackTrace);
   }
 }

@@ -1,3 +1,8 @@
+## [2.0.0] - 21/03/2021
+
+* migrate to null safety
+* expose timeout field
+
 ## [1.3.0] - 22/01/2021
 
 * improve framerate
