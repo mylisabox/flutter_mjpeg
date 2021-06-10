@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:http/http.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:path_provider/path_provider.dart';
 
 class _MjpegStateNotifier extends ChangeNotifier {
   bool _mounted = true;
@@ -100,6 +101,7 @@ class Mjpeg extends HookWidget {
         width: width,
         height: height,
         fit: fit,
+        gaplessPlayback: true,
       ),
       onVisibilityChanged: (VisibilityInfo info) {
         if (visible.mounted) {
@@ -132,10 +134,10 @@ class _StreamManager {
     _httpClient.close();
   }
 
-  Future<void> _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
+void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks)  {
     final imageMemory = MemoryImage(Uint8List.fromList(chunks));
     try {
-      await precacheImage(imageMemory, context, onError: (err, trace) {
+      precacheImage(imageMemory, context, onError: (err, trace) {
         print(err);
       });
       errorState.value = null;
@@ -143,60 +145,60 @@ class _StreamManager {
     } catch (ex) {}
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState) async {
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState) {
     try {
       final request = Request("GET", Uri.parse(stream));
-      request.headers.addAll(headers);
-      final response = await _httpClient.send(request).timeout(_timeout); //timeout is to prevent process to hang forever in some case
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        var _carry = <int>[];
-        _subscription = response.stream.listen((chunk) async {
-          if (_carry.isNotEmpty && _carry.last == _trigger) {
-            if (chunk.first == _eoi) {
-              _carry.add(chunk.first);
-              await _sendImage(context, image, errorState, _carry);
-              _carry = [];
-              if (!isLive) {
-                dispose();
+      _httpClient.send(request).then((response) {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          var _carry = <int>[];
+          _subscription = response.stream.listen((chunk) {
+            if (_carry.isNotEmpty && _carry.last == _trigger) {
+              if (chunk.first == _eoi) {
+                _carry.add(chunk.first);
+                _sendImage(context, image, errorState, _carry);
+                _carry = [];
+                if (!isLive) {
+                  dispose();
+                }
               }
             }
-          }
 
-          for (var i = 0; i < chunk.length - 1; i++) {
-            final d = chunk[i];
-            final d1 = chunk[i + 1];
+            for (var i = 0; i < chunk.length - 1; i++) {
+              final d = chunk[i];
+              final d1 = chunk[i + 1];
 
-            if (d == _trigger && d1 == _soi) {
-              _carry.add(d);
-            } else if (d == _trigger && d1 == _eoi && _carry.isNotEmpty) {
-              _carry.add(d);
-              _carry.add(d1);
-
-              await _sendImage(context, image, errorState, _carry);
-              _carry = [];
-              if (!isLive) {
-                dispose();
-              }
-            } else if (_carry.isNotEmpty) {
-              _carry.add(d);
-              if (i == chunk.length - 2) {
+              if (d == _trigger && d1 == _soi) {
+                _carry.add(d);
+              } else if (d == _trigger && d1 == _eoi && _carry.isNotEmpty) {
+                _carry.add(d);
                 _carry.add(d1);
+
+                _sendImage(context, image, errorState, _carry);
+                _carry = [];
+                if (!isLive) {
+                  dispose();
+                }
+              } else if (_carry.isNotEmpty) {
+                _carry.add(d);
+                if (i == chunk.length - 2) {
+                  _carry.add(d1);
+                }
               }
             }
-          }
-        }, onError: (err) {
-          try {
-            errorState.value = err;
-            image.value = null;
-          } catch (ex) {}
+          }, onError: (err) {
+            try {
+              errorState.value = err;
+              image.value = null;
+            } catch (ex) {}
+            dispose();
+          }, cancelOnError: true);
+        } else {
+          errorState.value =
+              HttpException('Stream returned ${response.statusCode} status');
+          image.value = null;
           dispose();
-        }, cancelOnError: true);
-      } else {
-        errorState.value = HttpException('Stream returned ${response.statusCode} status');
-        image.value = null;
-        dispose();
-      }
+        }
+      });
     } catch (error) {
       errorState.value = error;
       image.value = null;
