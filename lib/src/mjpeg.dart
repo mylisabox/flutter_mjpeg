@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:http/http.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:path_provider/path_provider.dart';
 
 class _MjpegStateNotifier extends ChangeNotifier {
   bool _mounted = true;
