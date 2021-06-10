@@ -147,6 +147,7 @@ void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNo
   void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState) {
     try {
       final request = Request("GET", Uri.parse(stream));
+      request.headers.addAll(headers);
       _httpClient.send(request).then((response) {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           var _carry = <int>[];
