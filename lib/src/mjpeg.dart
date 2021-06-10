@@ -39,7 +39,7 @@ class Mjpeg extends HookWidget {
   final bool isLive;
   final Duration timeout;
   final WidgetBuilder? loading;
-  final Widget Function(BuildContext contet, dynamic error)? error;
+  final Widget Function(BuildContext contet, dynamic error, dynamic stack)? error;
   final Map<String, String> headers;
 
   const Mjpeg({
@@ -60,7 +60,7 @@ class Mjpeg extends HookWidget {
     final image = useState<MemoryImage?>(null);
     final state = useMemoized(() => _MjpegStateNotifier());
     final visible = useListenable(state);
-    final errorState = useState<dynamic>(null);
+    final errorState = useState<List<dynamic>?>(null);
     final manager = useMemoized(() => _StreamManager(stream, isLive && visible.visible, headers, timeout), [stream, isLive, visible.visible, timeout]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
@@ -85,7 +85,7 @@ class Mjpeg extends HookWidget {
                   ),
                 ),
               )
-            : error!(context, errorState.value),
+            : error!(context, errorState.value!.first, errorState.value!.last),
       );
     }
 
@@ -99,6 +99,7 @@ class Mjpeg extends HookWidget {
         image: image.value!,
         width: width,
         height: height,
+        gaplessPlayback: true,
         fit: fit,
       ),
       onVisibilityChanged: (VisibilityInfo info) {
@@ -120,6 +121,7 @@ class _StreamManager {
   final Duration _timeout;
   final Map<String, String> headers;
   final Client _httpClient = Client();
+  // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
   _StreamManager(this.stream, this.isLive, this.headers, this._timeout);
@@ -132,18 +134,13 @@ class _StreamManager {
     _httpClient.close();
   }
 
-  Future<void> _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
+  void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
     final imageMemory = MemoryImage(Uint8List.fromList(chunks));
-    try {
-      await precacheImage(imageMemory, context, onError: (err, trace) {
-        print(err);
-      });
-      errorState.value = null;
-      image.value = imageMemory;
-    } catch (ex) {}
+    errorState.value = null;
+    image.value = imageMemory;
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState) async {
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<List<dynamic>?> errorState) async {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers);
@@ -155,7 +152,7 @@ class _StreamManager {
           if (_carry.isNotEmpty && _carry.last == _trigger) {
             if (chunk.first == _eoi) {
               _carry.add(chunk.first);
-              await _sendImage(context, image, errorState, _carry);
+              _sendImage(context, image, errorState, _carry);
               _carry = [];
               if (!isLive) {
                 dispose();
@@ -173,7 +170,7 @@ class _StreamManager {
               _carry.add(d);
               _carry.add(d1);
 
-              await _sendImage(context, image, errorState, _carry);
+              _sendImage(context, image, errorState, _carry);
               _carry = [];
               if (!isLive) {
                 dispose();
@@ -185,21 +182,24 @@ class _StreamManager {
               }
             }
           }
-        }, onError: (err) {
+        }, onError: (error, stack) {
           try {
-            errorState.value = err;
+            errorState.value = [error, stack];
             image.value = null;
           } catch (ex) {}
           dispose();
         }, cancelOnError: true);
       } else {
-        errorState.value = HttpException('Stream returned ${response.statusCode} status');
+        errorState.value = [HttpException('Stream returned ${response.statusCode} status'), StackTrace.current];
         image.value = null;
         dispose();
       }
-    } catch (error) {
-      errorState.value = error;
-      image.value = null;
+    } catch (error, stack) {
+      // we ignore those errors in case play/pause is triggers
+      if (!error.toString().contains('Connection closed before full header was received')) {
+        errorState.value = [error, stack];
+        image.value = null;
+      }
     }
   }
 }

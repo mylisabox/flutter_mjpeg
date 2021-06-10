@@ -31,6 +31,11 @@ class MyHomePage extends HookWidget {
             child: Center(
               child: Mjpeg(
                 isLive: isRunning.value,
+                error: (context, error, stack) {
+                  print(error);
+                  print(stack);
+                  return Text(error.toString(), style: TextStyle(color: Colors.red));
+                },
                 stream:
                 'http://91.133.85.170:8090/cgi-bin/faststream.jpg?stream=half&fps=15&rand=COUNTER', //'http://192.168.1.37:8081',
               ),
