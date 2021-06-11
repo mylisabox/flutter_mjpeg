@@ -1,6 +1,6 @@
 name: flutter_mjpeg
 description: Flutter widget to show mjpeg stream from URL, mainly used by ip camera, stop itself when not on screen
-version: 2.0.0
+version: 2.0.1
 homepage: https://github.com/mylisabox/flutter_mjpeg
 
 environment:
@@ -8,7 +8,7 @@ environment:
   flutter: ">=1.7.8"
 
 dependencies:
-  visibility_detector: ">=0.2.0-nullsafety.1 <1.0.0"
+  visibility_detector: ">=0.2.0 <1.0.0"
   flutter_hooks: ">=0.16.0 <1.0.0"
   http: ">=0.13.1 <1.0.0"
   flutter:

@@ -1,3 +1,8 @@
+## [2.0.1] - 11/06/2021
+
+* fix glitch on some streams
+* add stack param on onError callback
+
 ## [2.0.0] - 21/03/2021
 
 * migrate to null safety
