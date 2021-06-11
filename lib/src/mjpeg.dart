@@ -136,9 +136,6 @@ class _StreamManager {
 void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks)  {
     final imageMemory = MemoryImage(Uint8List.fromList(chunks));
     try {
-      precacheImage(imageMemory, context, onError: (err, trace) {
-        print(err);
-      });
       errorState.value = null;
       image.value = imageMemory;
     } catch (ex) {}
