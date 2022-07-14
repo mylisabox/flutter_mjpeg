@@ -185,6 +185,7 @@ class _StreamManager {
             final d1 = chunk[i + 1];
 
             if (d == _trigger && d1 == _soi) {
+              _carry = [];
               _carry.add(d);
             } else if (d == _trigger && d1 == _eoi && _carry.isNotEmpty) {
               _carry.add(d);
