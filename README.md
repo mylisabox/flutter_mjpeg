@@ -20,8 +20,10 @@ Mjpeg(
 
 `height` : force height
 
-`error` : error builder used when an error occurred 
+`error` : error builder used when an error occurred
 
 `loading` : loading builder used until first frame arrived
 
 `fit` : boxFit of the image
+
+`client` : Used to give a custom httpClient, for example DigestAuthClient() from http_auth. Defaults to Client()

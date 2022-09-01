@@ -39,10 +39,13 @@ class Mjpeg extends HookWidget {
   final bool isLive;
   final Duration timeout;
   final WidgetBuilder? loading;
-  final Widget Function(BuildContext contet, dynamic error, dynamic stack)? error;
+  final Client? client;
+  final Widget Function(BuildContext contet, dynamic error, dynamic stack)?
+      error;
   final Map<String, String> headers;
 
   const Mjpeg({
+    this.client,
     this.isLive = false,
     this.width,
     this.timeout = const Duration(seconds: 5),
@@ -61,7 +64,15 @@ class Mjpeg extends HookWidget {
     final state = useMemoized(() => _MjpegStateNotifier());
     final visible = useListenable(state);
     final errorState = useState<List<dynamic>?>(null);
-    final manager = useMemoized(() => _StreamManager(stream, isLive && visible.visible, headers, timeout), [stream, isLive, visible.visible, timeout]);
+    final manager = useMemoized(
+        () => _StreamManager(
+              stream,
+              isLive && visible.visible,
+              headers,
+              timeout,
+              client ?? Client(),
+            ),
+        [stream, isLive, visible.visible, timeout]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -90,7 +101,12 @@ class Mjpeg extends HookWidget {
     }
 
     if (image.value == null) {
-      return SizedBox(width: width, height: height, child: loading == null ? Center(child: CircularProgressIndicator()) : loading!(context));
+      return SizedBox(
+          width: width,
+          height: height,
+          child: loading == null
+              ? Center(child: CircularProgressIndicator())
+              : loading!(context));
     }
 
     return VisibilityDetector(
@@ -120,31 +136,35 @@ class _StreamManager {
   final bool isLive;
   final Duration _timeout;
   final Map<String, String> headers;
-  final Client _httpClient = Client();
+  final Client client;
   // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
-  _StreamManager(this.stream, this.isLive, this.headers, this._timeout);
+  _StreamManager(
+      this.stream, this.isLive, this.headers, this._timeout, this.client);
 
   Future<void> dispose() async {
     if (_subscription != null) {
       await _subscription!.cancel();
       _subscription = null;
     }
-    _httpClient.close();
+    client.close();
   }
 
-  void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<dynamic> errorState, List<int> chunks) async {
+  void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image,
+      ValueNotifier<dynamic> errorState, List<int> chunks) async {
     final imageMemory = MemoryImage(Uint8List.fromList(chunks));
     errorState.value = null;
     image.value = imageMemory;
   }
 
-  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image, ValueNotifier<List<dynamic>?> errorState) async {
+  void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image,
+      ValueNotifier<List<dynamic>?> errorState) async {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers);
-      final response = await _httpClient.send(request).timeout(_timeout); //timeout is to prevent process to hang forever in some case
+      final response = await client.send(request).timeout(
+          _timeout); //timeout is to prevent process to hang forever in some case
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         var _carry = <int>[];
@@ -190,13 +210,18 @@ class _StreamManager {
           dispose();
         }, cancelOnError: true);
       } else {
-        errorState.value = [HttpException('Stream returned ${response.statusCode} status'), StackTrace.current];
+        errorState.value = [
+          HttpException('Stream returned ${response.statusCode} status'),
+          StackTrace.current
+        ];
         image.value = null;
         dispose();
       }
     } catch (error, stack) {
       // we ignore those errors in case play/pause is triggers
-      if (!error.toString().contains('Connection closed before full header was received')) {
+      if (!error
+          .toString()
+          .contains('Connection closed before full header was received')) {
         errorState.value = [error, stack];
         image.value = null;
       }
