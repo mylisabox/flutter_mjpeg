@@ -136,19 +136,19 @@ class _StreamManager {
   final bool isLive;
   final Duration _timeout;
   final Map<String, String> headers;
-  final Client client;
+  final Client _httpClient;
   // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
   _StreamManager(
-      this.stream, this.isLive, this.headers, this._timeout, this.client);
+      this.stream, this.isLive, this.headers, this._timeout, this._httpClient);
 
   Future<void> dispose() async {
     if (_subscription != null) {
       await _subscription!.cancel();
       _subscription = null;
     }
-    client.close();
+    _httpClient.close();
   }
 
   void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image,
@@ -163,7 +163,7 @@ class _StreamManager {
     try {
       final request = Request("GET", Uri.parse(stream));
       request.headers.addAll(headers);
-      final response = await client.send(request).timeout(
+      final response = await _httpClient.send(request).timeout(
           _timeout); //timeout is to prevent process to hang forever in some case
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
