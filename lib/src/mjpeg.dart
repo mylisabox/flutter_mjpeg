@@ -72,7 +72,7 @@ class Mjpeg extends HookWidget {
               timeout,
               httpClient ?? Client(),
             ),
-        [stream, isLive, visible.visible, timeout]);
+        [stream, isLive, visible.visible, timeout, httpClient]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
