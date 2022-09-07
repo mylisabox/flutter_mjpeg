@@ -26,4 +26,4 @@ Mjpeg(
 
 `fit` : boxFit of the image
 
-`client` : Used to give a custom httpClient, for example DigestAuthClient() from http_auth. Defaults to Client()
+`httpClient` : Used to give a custom httpClient, for example DigestAuthClient() from http_auth. Defaults to Client()

@@ -39,13 +39,13 @@ class Mjpeg extends HookWidget {
   final bool isLive;
   final Duration timeout;
   final WidgetBuilder? loading;
-  final Client? client;
+  final Client? httpClient;
   final Widget Function(BuildContext contet, dynamic error, dynamic stack)?
       error;
   final Map<String, String> headers;
 
   const Mjpeg({
-    this.client,
+    this.httpClient,
     this.isLive = false,
     this.width,
     this.timeout = const Duration(seconds: 5),
@@ -70,7 +70,7 @@ class Mjpeg extends HookWidget {
               isLive && visible.visible,
               headers,
               timeout,
-              client ?? Client(),
+              httpClient ?? Client(),
             ),
         [stream, isLive, visible.visible, timeout]);
     final key = useMemoized(() => UniqueKey(), [manager]);
