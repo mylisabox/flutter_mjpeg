@@ -30,7 +30,12 @@ class _MjpegStateNotifier extends ChangeNotifier {
   }
 }
 
-/// A Mjpeg.
+/// A preprocessor for each JPEG frame from an MJPEG stream.
+class MjpegPreprocessor {
+  List<int>? process(List<int> frame) => frame;
+}
+
+/// An Mjpeg.
 class Mjpeg extends HookWidget {
   final String stream;
   final BoxFit? fit;
@@ -43,6 +48,7 @@ class Mjpeg extends HookWidget {
   final Widget Function(BuildContext contet, dynamic error, dynamic stack)?
       error;
   final Map<String, String> headers;
+  final MjpegPreprocessor? preprocessor;
 
   const Mjpeg({
     this.httpClient,
@@ -55,6 +61,7 @@ class Mjpeg extends HookWidget {
     this.error,
     this.loading,
     this.headers = const {},
+    this.preprocessor,
     Key? key,
   }) : super(key: key);
 
@@ -71,8 +78,9 @@ class Mjpeg extends HookWidget {
               headers,
               timeout,
               httpClient ?? Client(),
+              preprocessor ?? MjpegPreprocessor(),
             ),
-        [stream, isLive, visible.visible, timeout, httpClient]);
+        [stream, isLive, visible.visible, timeout, httpClient, preprocessor]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -137,11 +145,12 @@ class _StreamManager {
   final Duration _timeout;
   final Map<String, String> headers;
   final Client _httpClient;
+  final MjpegPreprocessor _preprocessor;
   // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
   _StreamManager(
-      this.stream, this.isLive, this.headers, this._timeout, this._httpClient);
+      this.stream, this.isLive, this.headers, this._timeout, this._httpClient, this._preprocessor);
 
   Future<void> dispose() async {
     if (_subscription != null) {
@@ -153,7 +162,11 @@ class _StreamManager {
 
   void _sendImage(BuildContext context, ValueNotifier<MemoryImage?> image,
       ValueNotifier<dynamic> errorState, List<int> chunks) async {
-    final imageMemory = MemoryImage(Uint8List.fromList(chunks));
+    // pass image through preprocessor sending to [Image] for rendering
+    final List<int>? imageData = _preprocessor.process(chunks);
+    if (imageData == null) return;
+
+    final imageMemory = MemoryImage(Uint8List.fromList(imageData));
     errorState.value = null;
     image.value = imageMemory;
   }

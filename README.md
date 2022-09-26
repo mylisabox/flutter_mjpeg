@@ -26,3 +26,4 @@ Parameter | Description
 `fit` | The `boxFit` of the image
 `headers` | A map of headers to send in the HTTP request
 `httpClient` | Used to give a custom httpClient, for example `DigestAuthClient()` from [http_auth](https://pub.dev/packages/http_auth). Defaults to `Client()` from [http](https://pub.dev/packages/http).
+`preprocessor` | Used to apply preprocessing to each frame of the MJPEG stream before it is sent to [Image](https://api.flutter.dev/flutter/widgets/Image-class.html) for rendering. Defaults to `MjpegPreprocessor()`, which passes each frame without modification. 
