@@ -13,17 +13,16 @@ Mjpeg(
 ```
 
 ## API
+The [`Mjpeg` widget](https://pub.dev/documentation/flutter_mjpeg/latest/flutter_mjpeg/Mjpeg-class.html) expects a `stream` parameter with the HTTP URL of the MJPEG stream and can handle the following additional parameters:
 
-`stream` : URL of the MJPEG stream
-
-`width` : force width
-
-`height` : force height
-
-`error` : error builder used when an error occurred
-
-`loading` : loading builder used until first frame arrived
-
-`fit` : boxFit of the image
-
-`httpClient` : Used to give a custom httpClient, for example DigestAuthClient() from http_auth. Defaults to Client()
+Parameter | Description
+--- | ---
+`isLive` | Whether or not the stream should be loaded continuously
+`timeout` | HTTP Timeout when fetching the MJPEG stream
+`width` | Force width
+`height` | Force height
+`error` | Error builder used when an error occurred
+`loading` | Loading builder used until first frame arrived
+`fit` | The `boxFit` of the image
+`headers` | A map of headers to send in the HTTP request
+`httpClient` | Used to give a custom httpClient, for example `DigestAuthClient()` from [http_auth](https://pub.dev/packages/http_auth). Defaults to `Client()` from [http](https://pub.dev/packages/http).
