@@ -8,6 +8,7 @@ const _soi = 0xD8;
 const _eoi = 0xD9;
 
 void main() {
+  // ignore_for_file: close_sinks
   final streamController = StreamController<List<int>>.broadcast();
 
   streamController.stream.transform(JpegSplitter()).listen((data) {

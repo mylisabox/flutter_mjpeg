@@ -37,19 +37,19 @@ class MyHomePage extends HookWidget {
                   return Text(error.toString(), style: TextStyle(color: Colors.red));
                 },
                 stream:
-                'http://91.133.85.170:8090/cgi-bin/faststream.jpg?stream=half&fps=15&rand=COUNTER', //'http://192.168.1.37:8081',
+                'http://uk.jokkmokk.jp/photo/nr4/latest.jpg', //'http://192.168.1.37:8081',
               ),
             ),
           ),
           Row(
             children: <Widget>[
-              RaisedButton(
+              ElevatedButton(
                 onPressed: () {
                   isRunning.value = !isRunning.value;
                 },
                 child: Text('Toggle'),
               ),
-              RaisedButton(
+              ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) => Scaffold(

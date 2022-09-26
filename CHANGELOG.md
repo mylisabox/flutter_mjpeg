@@ -1,3 +1,8 @@
+## [2.0.2] - 26/09/2022
+
+* fix image decoding error
+* better doc
+
 ## [2.0.1] - 11/06/2021
 
 * fix glitch on some streams
