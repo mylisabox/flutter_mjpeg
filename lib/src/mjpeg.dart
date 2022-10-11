@@ -71,6 +71,7 @@ class Mjpeg extends HookWidget {
     final state = useMemoized(() => _MjpegStateNotifier());
     final visible = useListenable(state);
     final errorState = useState<List<dynamic>?>(null);
+    final isMounted = useIsMounted();
     final manager = useMemoized(
         () => _StreamManager(
               stream,
@@ -79,8 +80,17 @@ class Mjpeg extends HookWidget {
               timeout,
               httpClient ?? Client(),
               preprocessor ?? MjpegPreprocessor(),
+              isMounted,
             ),
-        [stream, isLive, visible.visible, timeout, httpClient, preprocessor]);
+        [
+          stream,
+          isLive,
+          visible.visible,
+          timeout,
+          httpClient,
+          preprocessor,
+          isMounted
+        ]);
     final key = useMemoized(() => UniqueKey(), [manager]);
 
     useEffect(() {
@@ -146,11 +156,12 @@ class _StreamManager {
   final Map<String, String> headers;
   final Client _httpClient;
   final MjpegPreprocessor _preprocessor;
+  final Function _mounted;
   // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
-  _StreamManager(
-      this.stream, this.isLive, this.headers, this._timeout, this._httpClient, this._preprocessor);
+  _StreamManager(this.stream, this.isLive, this.headers, this._timeout,
+      this._httpClient, this._preprocessor, this._mounted);
 
   Future<void> dispose() async {
     if (_subscription != null) {
@@ -167,8 +178,10 @@ class _StreamManager {
     if (imageData == null) return;
 
     final imageMemory = MemoryImage(Uint8List.fromList(imageData));
-    errorState.value = null;
-    image.value = imageMemory;
+    if (_mounted()) {
+      errorState.value = null;
+      image.value = imageMemory;
+    }
   }
 
   void updateStream(BuildContext context, ValueNotifier<MemoryImage?> image,
@@ -218,17 +231,21 @@ class _StreamManager {
           }
         }, onError: (error, stack) {
           try {
-            errorState.value = [error, stack];
-            image.value = null;
+            if (_mounted()) {
+              errorState.value = [error, stack];
+              image.value = null;
+            }
           } catch (ex) {}
           dispose();
         }, cancelOnError: true);
       } else {
-        errorState.value = [
-          HttpException('Stream returned ${response.statusCode} status'),
-          StackTrace.current
-        ];
-        image.value = null;
+        if (_mounted()) {
+          errorState.value = [
+            HttpException('Stream returned ${response.statusCode} status'),
+            StackTrace.current
+          ];
+          image.value = null;
+        }
         dispose();
       }
     } catch (error, stack) {
@@ -236,8 +253,10 @@ class _StreamManager {
       if (!error
           .toString()
           .contains('Connection closed before full header was received')) {
-        errorState.value = [error, stack];
-        image.value = null;
+        if (_mounted()) {
+          errorState.value = [error, stack];
+          image.value = null;
+        }
       }
     }
   }
