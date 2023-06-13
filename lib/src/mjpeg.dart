@@ -156,7 +156,7 @@ class _StreamManager {
   final Map<String, String> headers;
   final Client _httpClient;
   final MjpegPreprocessor _preprocessor;
-  final Function _mounted;
+  final bool Function() _mounted;
   // ignore: cancel_subscriptions
   StreamSubscription? _subscription;
 
