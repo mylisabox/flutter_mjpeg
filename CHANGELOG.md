@@ -1,3 +1,11 @@
+## [2.0.4] - 15/07/2023
+
+* prevent errors when widget not mounted
+
+## [2.0.3] - 04/10/2022
+
+* add preprocessor field to process frame if needed
+
 ## [2.0.2] - 26/09/2022
 
 * fix image decoding error
