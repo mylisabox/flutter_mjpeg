@@ -45,7 +45,7 @@ class Mjpeg extends HookWidget {
   final Duration timeout;
   final WidgetBuilder? loading;
   final Client? httpClient;
-  final Widget Function(BuildContext contet, dynamic error, dynamic stack)?
+  final Widget Function(BuildContext context, dynamic error, dynamic stack)?
       error;
   final Map<String, String> headers;
   final MjpegPreprocessor? preprocessor;
